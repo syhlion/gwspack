@@ -157,9 +157,8 @@ func (a *App) Register(tag string, w http.ResponseWriter, r *http.Request) (err 
 	}
 	c := newClient(tag, ws, a)
 	a.register <- c
-	go c.readPump()
+	c.start()
 
-	c.writePump()
 	return
 }
 
