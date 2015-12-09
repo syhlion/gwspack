@@ -1,4 +1,4 @@
-package gcore
+package wsexchange
 
 import (
 	"errors"
