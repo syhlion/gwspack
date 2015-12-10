@@ -1,15 +1,18 @@
-# wsexchange
+package main
 
-Base on gorilla/websocket
+import (
+	"fmt"
+	"github.com/syhlion/wsexchange"
+	"log"
+	"net/http"
+)
 
-## Install
+type Hello struct{}
 
-`go get github.com/syhlion/wsexchange`
-
-
-## Useged
-
-``` go
+func (h *Hello) Receive(tag string, s wsexchange.Sender, b []byte) {
+	log.Println(tag)
+	s.SendAll(b)
+}
 func main() {
 
 	h := &Hello{}
@@ -28,6 +31,3 @@ func main() {
 	})
 	log.Fatal(http.ListenAndServe(":8888", nil))
 }
-
-```
-

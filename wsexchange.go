@@ -86,10 +86,9 @@ func (c *client) readPump() {
 		if err != nil {
 			return
 		}
-		//暫時不實做推送到 送出頻道 目前是 readonly
-		//c.Send <- msg
 
 		c.app.receive <- Message{c.tag, msg}
+		println(string(msg))
 	}
 
 }
@@ -157,18 +156,20 @@ type Sender interface {
 }
 
 type Receiver interface {
-	Receive(tag string, s Sender, b []byte) error
+	Receive(tag string, s Sender, b []byte)
 }
 
-func NewApp(key string, r Receiver) (app *App) {
+func NewApp(key string, r Receiver, processCount int) (app *App) {
 
 	app = &App{
-		key:         key,
-		connections: make(map[*client]bool),
-		receiver:    r,
-		boradcast:   make(chan []byte),
-		register:    make(chan *client),
-		unregister:  make(chan *client),
+		key:          key,
+		connections:  make(map[*client]bool),
+		receiver:     r,
+		boradcast:    make(chan []byte),
+		register:     make(chan *client),
+		unregister:   make(chan *client),
+		receive:      make(chan Message),
+		processCount: processCount,
 	}
 	return
 }
@@ -260,7 +261,10 @@ func (a *App) isExpand() bool {
 	count := a.Count() / a.processCount
 	residue := a.Count() % a.processCount
 	length := len(a.receiverProcessPool)
-	if length == 0 || length < count || (count%residue) > (a.processCount/2) {
+	if length == 0 {
+		return true
+	}
+	if length < count && (count%residue) > (a.processCount/2) {
 		return true
 	}
 	return false
