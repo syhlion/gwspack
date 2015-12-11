@@ -5,78 +5,81 @@ import (
 	"net/http"
 )
 
-var upgrader = websocket.Upgrader{
+var Upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-type Message struct {
-	Tag     string
-	Content []byte
+type ClientController interface {
+	Register(id string, w http.ResponseWriter, r *http.Request, data map[string]interface{}) (c ClientProxyer, err error)
+	Unregister(id string)
+	Count() int
+	CountById() int
 }
 
-type App struct {
+type app struct {
 	key                 string //app key
 	clientSets          int    //多少連線數要多開一個 process
-	connections         map[string]map[*client]bool
+	connections         map[string]map[*client]map[string]interface{}
 	receiverProcessPool []chan<- int
 	receiver            Receiver
 	boradcast           chan []byte
-	receive             chan Message
+	receive             chan message
 	register            chan *client
 	unregister          chan *client
 }
 
 type Sender interface {
-	SendTo(tag string, b []byte)
+	SendTo(id string, b []byte)
 	SendAll(b []byte)
 }
 
 type Receiver interface {
-	Receive(id string, s Sender, b []byte)
+	Receive(id string, s Sender, b []byte, data map[string]interface{})
 }
 
-func NewApp(key string, r Receiver, clientSets int) (app *App) {
+func newApp(key string, r Receiver, clientSets int) (a *app) {
 
-	app = &App{
+	a = &app{
 		key:         key,
-		connections: make(map[string]map[*client]bool),
+		connections: make(map[string]map[*client]map[string]interface{}),
 		receiver:    r,
 		boradcast:   make(chan []byte),
 		register:    make(chan *client),
 		unregister:  make(chan *client),
-		receive:     make(chan Message),
+		receive:     make(chan message),
 		clientSets:  clientSets,
 	}
 	return
 }
 
-func (a *App) Register(id string, w http.ResponseWriter, r *http.Request) (c ClientProxyer, err error) {
-	ws, err := upgrader.Upgrade(w, r, nil)
+func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, data map[string]interface{}) (c ClientProxyer, err error) {
+	ws, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
+
 		return
 	}
-	c = newClient(id, ws, a)
+	c = newClient(id, ws, a, data)
 	return
 
 }
 
-func (a *App) Unregister(tag string) {
-	for c := range a.connections[tag] {
+func (a *app) Unregister(id string) {
+	for c := range a.connections[id] {
 		a.unregister <- c
 	}
 }
 
-func (a *App) SendTo(tag string, b []byte) {
+func (a *app) SendTo(id string, b []byte) {
 
-	for c := range a.connections[tag] {
+	for c := range a.connections[id] {
 		c.send <- b
 	}
 
 }
 
-func (a *App) Count() int {
+func (a *app) Count() int {
 	var i int
 	for k, _ := range a.connections {
 		for _, _ = range a.connections[k] {
@@ -86,21 +89,24 @@ func (a *App) Count() int {
 	return i
 }
 
-func (a *App) CountByTag() int {
+func (a *app) CountById() int {
 	return len(a.connections)
 }
 
-func (a *App) SendAll(b []byte) {
+func (a *app) SendAll(b []byte) {
 	a.boradcast <- b
 }
 
-func (a *App) receiveHandle() chan<- int {
+func (a *app) List() {
+}
+
+func (a *app) receiveHandle() chan<- int {
 	end := make(chan int)
 	go func() {
 		for {
 			select {
 			case m := <-a.receive:
-				a.receiver.Receive(m.Tag, a, m.Content)
+				a.receiver.Receive(m.clientId, a, m.content, m.data)
 			case <-end:
 				break
 			}
@@ -108,16 +114,16 @@ func (a *App) receiveHandle() chan<- int {
 	}()
 	return end
 }
-func (a *App) Run() {
+func (a *app) Run() {
 	for {
 		select {
 		case c := <-a.register:
 			if v, ok := a.connections[c.id]; !ok {
-				m := make(map[*client]bool)
-				m[c] = true
+				m := make(map[*client]map[string]interface{})
+				m[c] = c.data
 				a.connections[c.id] = m
 			} else {
-				v[c] = true
+				v[c] = c.data
 			}
 			if IsExpand(a.Count(), a.clientSets, len(a.receiverProcessPool)) {
 				c := a.receiveHandle()

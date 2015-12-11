@@ -12,20 +12,10 @@ import (
 
 type testReceiver struct{ *testing.T }
 
-func (t testReceiver) Receive(tag string, s Sender, b []byte) {
+func (t testReceiver) Receive(tag string, s Sender, b []byte, data map[string]interface{}) {
 
 	s.SendAll(b)
 
-}
-
-func newApp(t *testing.T) *App {
-
-	var app *App
-	app = NewApp("testKey", &testReceiver{t}, 5)
-	if app.key != "testKey" {
-		t.Error("error key")
-	}
-	return app
 }
 
 func newWebScoetClient(a string) (wsConn *websocket.Conn) {
@@ -52,11 +42,13 @@ func newWebScoetClient(a string) (wsConn *websocket.Conn) {
 }
 func TestRegister(t *testing.T) {
 	tag := [3]string{"a", "a", "b"}
-	app := newApp(t)
-	go app.Run()
+
 	i := 0
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		c, err := app.Register(tag[i], w, r)
+
+		a := New("testKey", &testReceiver{t}, 5)
+		c, err := a.Register(tag[i], w, r, nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -73,14 +65,15 @@ func TestRegister(t *testing.T) {
 		ws2.Close()
 		ws3.Close()
 	}()
-	if app.Count() != 3 {
-		t.Error("count error", app.Count())
+	ap, err := Get("testKey")
+	if err != nil {
+		t.Error("empty key")
 	}
-	if app.CountByTag() != 2 {
-		t.Error("count by tag error", app.Count())
+	if ap.Count() != 3 {
+		t.Error("count error", ap.Count())
 	}
-	if len(app.receiverProcessPool) != 1 {
-		t.Error("process not stratr")
+	if ap.CountById() != 2 {
+		t.Error("count by tag error", ap.Count())
 	}
 
 }

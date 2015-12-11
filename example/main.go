@@ -9,7 +9,7 @@ import (
 
 type Hello struct{}
 
-func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte) {
+func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte, data map[string]interface{}) {
 	log.Println(tag)
 	s.SendAll(b)
 }
@@ -17,11 +17,9 @@ func main() {
 
 	h := &Hello{}
 
-	app := gwspack.NewApp("key", h, 10)
-	go app.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-
-		ws, err := app.Register("Frank", w, r)
+		app := gwspack.New("key", h, 10)
+		ws, err := app.Register("Frank", w, r, nil)
 		if err != nil {
 			fmt.Println(err)
 			return

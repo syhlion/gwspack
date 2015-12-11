@@ -12,22 +12,29 @@ const (
 	maxMessageSize = 512
 )
 
+type message struct {
+	clientId string
+	content  []byte
+	data     map[string]interface{}
+}
 type ClientProxyer interface {
 	Listen()
 }
 type client struct {
 	id   string
 	ws   *websocket.Conn
-	app  *App
+	app  *app
 	send chan []byte
+	data map[string]interface{}
 }
 
-func newClient(id string, ws *websocket.Conn, app *App) *client {
+func newClient(id string, ws *websocket.Conn, app *app, data map[string]interface{}) *client {
 	return &client{
 		id:   id,
 		ws:   ws,
 		send: make(chan []byte, 1024),
 		app:  app,
+		data: data,
 	}
 }
 
@@ -50,7 +57,7 @@ func (c *client) readPump() {
 			return
 		}
 
-		c.app.receive <- Message{c.id, msg}
+		c.app.receive <- message{c.id, msg, c.data}
 	}
 
 }
