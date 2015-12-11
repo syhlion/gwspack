@@ -4,7 +4,7 @@ Base on gorilla/websocket
 
 ## Install
 
-`go get github.com/syhlion/wsexchange`
+`go get github.com/syhlion/gwspack`
 
 
 ## Useged
