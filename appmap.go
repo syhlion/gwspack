@@ -1,4 +1,4 @@
-package wsexchange
+package gwspack
 
 import (
 	"errors"

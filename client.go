@@ -1,4 +1,4 @@
-package wsexchange
+package gwspack
 
 import (
 	"github.com/gorilla/websocket"
@@ -16,15 +16,15 @@ type ClientProxyer interface {
 	Listen()
 }
 type client struct {
-	tag  string
+	id   string
 	ws   *websocket.Conn
 	app  *App
 	send chan []byte
 }
 
-func newClient(tag string, ws *websocket.Conn, app *App) *client {
+func newClient(id string, ws *websocket.Conn, app *App) *client {
 	return &client{
-		tag:  tag,
+		id:   id,
 		ws:   ws,
 		send: make(chan []byte, 1024),
 		app:  app,
@@ -50,8 +50,7 @@ func (c *client) readPump() {
 			return
 		}
 
-		c.app.receive <- Message{c.tag, msg}
-		println(string(msg))
+		c.app.receive <- Message{c.id, msg}
 	}
 
 }

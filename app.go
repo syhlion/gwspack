@@ -1,4 +1,4 @@
-package wsexchange
+package gwspack
 
 import (
 	"github.com/gorilla/websocket"
@@ -34,7 +34,7 @@ type Sender interface {
 }
 
 type Receiver interface {
-	Receive(tag string, s Sender, b []byte)
+	Receive(id string, s Sender, b []byte)
 }
 
 func NewApp(key string, r Receiver, clientSets int) (app *App) {
@@ -52,12 +52,12 @@ func NewApp(key string, r Receiver, clientSets int) (app *App) {
 	return
 }
 
-func (a *App) Register(tag string, w http.ResponseWriter, r *http.Request) (c ClientProxyer, err error) {
+func (a *App) Register(id string, w http.ResponseWriter, r *http.Request) (c ClientProxyer, err error) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return
 	}
-	c = newClient(tag, ws, a)
+	c = newClient(id, ws, a)
 	return
 
 }
@@ -112,10 +112,10 @@ func (a *App) Run() {
 	for {
 		select {
 		case c := <-a.register:
-			if v, ok := a.connections[c.tag]; !ok {
+			if v, ok := a.connections[c.id]; !ok {
 				m := make(map[*client]bool)
 				m[c] = true
-				a.connections[c.tag] = m
+				a.connections[c.id] = m
 			} else {
 				v[c] = true
 			}
@@ -125,9 +125,9 @@ func (a *App) Run() {
 			}
 
 		case client := <-a.unregister:
-			for c := range a.connections[client.tag] {
+			for c := range a.connections[client.id] {
 				if c == client {
-					delete(a.connections[client.tag], client)
+					delete(a.connections[client.id], client)
 					close(client.send)
 				}
 			}
