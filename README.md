@@ -1,4 +1,4 @@
-# wsexchange
+# Gusher WebScoket Pack
 
 Base on gorilla/websocket
 
@@ -14,7 +14,7 @@ func main() {
 
 	h := &Hello{}
 
-	app := wsexchange.NewApp("key", h, 10)
+	app := gwspack.NewApp("key", h, 10)
 	go app.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
