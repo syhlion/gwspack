@@ -86,6 +86,10 @@ func (a *App) Count() int {
 	return i
 }
 
+func (a *App) CountByTag() int {
+	return len(a.connections)
+}
+
 func (a *App) SendAll(b []byte) {
 	a.boradcast <- b
 }

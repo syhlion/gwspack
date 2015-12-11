@@ -50,28 +50,34 @@ func newWebScoetClient(a string) (wsConn *websocket.Conn) {
 	}
 	return wsConn
 }
-
 func TestRegister(t *testing.T) {
+	tag := [3]string{"a", "a", "b"}
 	app := newApp(t)
 	go app.Run()
+	i := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		println("test")
-		c, err := app.Register("Frank", w, r)
+		c, err := app.Register(tag[i], w, r)
 		if err != nil {
 			t.Error(err)
 		}
+		i++
 		c.Listen()
 
 	}))
 	defer ts.Close()
 	ws := newWebScoetClient(ts.URL)
 	ws2 := newWebScoetClient(ts.URL)
+	ws3 := newWebScoetClient(ts.URL)
 	defer func() {
 		ws.Close()
 		ws2.Close()
+		ws3.Close()
 	}()
-	if app.Count() != 2 {
-		t.Error("not in map")
+	if app.Count() != 3 {
+		t.Error("count error", app.Count())
+	}
+	if app.CountByTag() != 2 {
+		t.Error("count by tag error", app.Count())
 	}
 	if len(app.receiverProcessPool) != 1 {
 		t.Error("process not stratr")
