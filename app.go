@@ -3,6 +3,7 @@ package gwspack
 import (
 	"github.com/gorilla/websocket"
 	"net/http"
+	"sync"
 )
 
 type UserData map[string]interface{}
@@ -32,6 +33,7 @@ type app struct {
 	receive             chan message
 	register            chan *client
 	unregister          chan *client
+	lock                *sync.RWMutex
 }
 
 type Sender interface {
@@ -54,6 +56,7 @@ func newApp(key string, r Receiver, clientSets int) (a *app) {
 		unregister:  make(chan *client),
 		receive:     make(chan message),
 		clientSets:  clientSets,
+		lock:        new(sync.RWMutex),
 	}
 	return
 }
@@ -70,6 +73,8 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, data U
 }
 
 func (a *app) Unregister(id string) {
+	a.lock.RLock()
+	defer a.lock.RUnlock()
 	for c := range a.connections[id] {
 		a.unregister <- c
 	}
@@ -77,6 +82,8 @@ func (a *app) Unregister(id string) {
 
 func (a *app) SendTo(id string, b []byte) {
 
+	a.lock.RLock()
+	defer a.lock.RUnlock()
 	for c := range a.connections[id] {
 		c.send <- b
 	}
@@ -85,6 +92,8 @@ func (a *app) SendTo(id string, b []byte) {
 
 func (a *app) Count() int {
 	var i int
+	a.lock.RLock()
+	defer a.lock.RUnlock()
 	for k, _ := range a.connections {
 		for _, _ = range a.connections[k] {
 			i++
@@ -122,12 +131,19 @@ func (a *app) Run() {
 	for {
 		select {
 		case c := <-a.register:
+			a.lock.RLock()
 			if v, ok := a.connections[c.id]; !ok {
+				a.lock.RUnlock()
 				m := make(map[*client]UserData)
 				m[c] = c.data
+				a.lock.Lock()
 				a.connections[c.id] = m
+				a.lock.Unlock()
 			} else {
+				a.lock.RUnlock()
+				a.lock.Lock()
 				v[c] = c.data
+				a.lock.Unlock()
 			}
 			if IsExpand(a.Count(), a.clientSets, len(a.receiverProcessPool)) {
 				c := a.receiveHandle()
@@ -135,12 +151,21 @@ func (a *app) Run() {
 			}
 
 		case client := <-a.unregister:
-			for c := range a.connections[client.id] {
-				if c == client {
-					delete(a.connections[client.id], client)
-					close(client.send)
+			a.lock.RLock()
+			if v, ok := a.connections[client.id]; ok {
+				for c := range v {
+					if c == client {
+						a.lock.RUnlock()
+						a.lock.Lock()
+						delete(a.connections[client.id], client)
+						close(client.send)
+						a.lock.Unlock()
+					}
 				}
+			} else {
+				a.lock.RUnlock()
 			}
+
 			if IsReduce(a.Count(), a.clientSets, len(a.receiverProcessPool)) {
 
 				a.receiverProcessPool = append(a.receiverProcessPool[:0], a.receiverProcessPool[1:]...)
