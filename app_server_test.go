@@ -12,7 +12,7 @@ import (
 
 type testReceiver struct{ *testing.T }
 
-func (t testReceiver) Receive(tag string, s Sender, b []byte, data map[string]interface{}) {
+func (t testReceiver) Receive(tag string, s Sender, b []byte, data UserData) {
 
 	s.SendAll(b)
 
