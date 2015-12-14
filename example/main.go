@@ -9,7 +9,7 @@ import (
 
 type Hello struct{}
 
-func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte, data map[string]interface{}) {
+func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte, data gwspack.UserData) {
 	log.Println(tag)
 	s.SendAll(b)
 }

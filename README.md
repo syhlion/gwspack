@@ -10,11 +10,17 @@ Base on gorilla/websocket
 ## Useged
 
 ``` go
+type Hello struct{}
+
+func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte, data gwspack.UserData) {
+	log.Println(tag)
+	s.SendAll(b)
+}
 func main() {
 
 	h := &Hello{}
 
-	app := gwspack.NewApp("key", h, 10)
+	app := gwspack.New("key", h, 10)
 	go app.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
