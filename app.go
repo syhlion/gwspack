@@ -5,6 +5,8 @@ import (
 	"net/http"
 )
 
+type UserData map[string]interface{}
+
 var Upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -12,16 +14,18 @@ var Upgrader = websocket.Upgrader{
 }
 
 type ClientController interface {
-	Register(id string, w http.ResponseWriter, r *http.Request, data map[string]interface{}) (c ClientProxyer, err error)
+	Register(id string, w http.ResponseWriter, r *http.Request, data UserData) (c ClientProxyer, err error)
 	Unregister(id string)
 	Count() int
 	CountById() int
+	SendTo(id string, b []byte)
+	SendAll(b []byte)
 }
 
 type app struct {
 	key                 string //app key
 	clientSets          int    //多少連線數要多開一個 process
-	connections         map[string]map[*client]map[string]interface{}
+	connections         map[string]map[*client]UserData
 	receiverProcessPool []chan<- int
 	receiver            Receiver
 	boradcast           chan []byte
@@ -36,14 +40,14 @@ type Sender interface {
 }
 
 type Receiver interface {
-	Receive(id string, s Sender, b []byte, data map[string]interface{})
+	Receive(id string, s Sender, b []byte, data UserData)
 }
 
 func newApp(key string, r Receiver, clientSets int) (a *app) {
 
 	a = &app{
 		key:         key,
-		connections: make(map[string]map[*client]map[string]interface{}),
+		connections: make(map[string]map[*client]UserData),
 		receiver:    r,
 		boradcast:   make(chan []byte),
 		register:    make(chan *client),
@@ -54,7 +58,7 @@ func newApp(key string, r Receiver, clientSets int) (a *app) {
 	return
 }
 
-func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, data map[string]interface{}) (c ClientProxyer, err error) {
+func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, data UserData) (c ClientProxyer, err error) {
 	ws, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 
@@ -119,7 +123,7 @@ func (a *app) Run() {
 		select {
 		case c := <-a.register:
 			if v, ok := a.connections[c.id]; !ok {
-				m := make(map[*client]map[string]interface{})
+				m := make(map[*client]UserData)
 				m[c] = c.data
 				a.connections[c.id] = m
 			} else {
