@@ -58,7 +58,7 @@ func (c *client) readPump() {
 		if err != nil {
 			return
 		}
-		if c.app.receiver != nil {
+		if c.receiver != nil {
 			c.receiver.Receive(c.id, c.app, msg, c.data)
 		}
 	}

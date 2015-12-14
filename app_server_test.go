@@ -16,7 +16,6 @@ var testlock *sync.RWMutex = new(sync.RWMutex)
 type testReceiver struct{ *testing.T }
 
 func (t testReceiver) Receive(tag string, s Sender, b []byte, data UserData) {
-
 	s.SendAll(b)
 
 }
@@ -51,7 +50,7 @@ func TestRegister(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		a := New("testKey")
+		a := Get("testKey")
 		testlock.RLock()
 		c, err := a.Register(tag[i], w, r, &testReceiver{}, nil)
 		testlock.RUnlock()
@@ -71,15 +70,78 @@ func TestRegister(t *testing.T) {
 		ws2.Close()
 		ws3.Close()
 	}()
-	ap, err := Get("testKey")
-	if err != nil {
-		t.Error("empty key")
-	}
+	ap := Get("testKey")
 	if ap.Count() != 3 {
 		t.Error("count error", ap.Count())
 	}
 	if ap.CountById() != 2 {
 		t.Error("count by tag error", ap.Count())
 	}
+	return
 
+}
+func TestSendAll(t *testing.T) {
+
+	tag := [3]string{"a", "a", "b"}
+
+	i := 0
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		a := Get("testKey")
+		testlock.RLock()
+		c, err := a.Register(tag[i], w, r, &testReceiver{}, nil)
+		testlock.RUnlock()
+		if err != nil {
+			t.Error(err)
+		}
+		i++
+		c.Listen()
+
+	}))
+	defer ts.Close()
+	ws := newWebScoetClient(ts.URL)
+	ws2 := newWebScoetClient(ts.URL)
+	ws3 := newWebScoetClient(ts.URL)
+	defer func() {
+		ws.Close()
+		ws2.Close()
+		ws3.Close()
+	}()
+
+	wschan := make(chan int)
+	ws2chan := make(chan int)
+	ws3chan := make(chan int)
+	go func() {
+		_, message, err := ws.ReadMessage()
+		if err == nil && string(message) == "aaa" {
+			wschan <- 1
+		}
+		defer close(wschan)
+	}()
+	go func() {
+		_, message, err := ws2.ReadMessage()
+		if err == nil && string(message) == "aaa" {
+			ws2chan <- 1
+		}
+		defer close(ws2chan)
+	}()
+	go func() {
+		_, message, err := ws3.ReadMessage()
+		if err == nil && string(message) == "aaa" {
+			ws3chan <- 1
+		}
+		defer close(ws3chan)
+	}()
+	err := ws.WriteMessage(websocket.TextMessage, []byte("aaa"))
+	if err != nil {
+		t.Error(err)
+	}
+	wsint := <-wschan
+	ws2int := <-ws2chan
+	ws3int := <-ws3chan
+	if wsint != 1 && ws2int != 1 && ws3int != 1 {
+		t.Error(wsint, ws2int, ws3int)
+	}
+	return
 }
