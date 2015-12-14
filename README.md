@@ -20,7 +20,7 @@ func main() {
 
 	h := &Hello{}
 
-	app := gwspack.New("key")
+	app := gwspack.Get("key")
 	go app.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 

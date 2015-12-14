@@ -18,7 +18,7 @@ func main() {
 	h := &Hello{}
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		app := gwspack.New("key")
+		app := gwspack.Get("key")
 		ws, err := app.Register("Frank", w, r, h, nil)
 		if err != nil {
 			fmt.Println(err)
