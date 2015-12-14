@@ -1,7 +1,6 @@
 package gwspack
 
 import (
-	"errors"
 	"sync"
 )
 
@@ -10,7 +9,7 @@ var (
 	apps map[string]*app = make(map[string]*app)
 )
 
-func New(key string) (c ClientController) {
+func Get(key string) (c ClientController) {
 
 	lock.Lock()
 	defer lock.Unlock()
@@ -19,17 +18,4 @@ func New(key string) (c ClientController) {
 		go apps[key].Run()
 	}
 	return apps[key]
-}
-
-func Get(key string) (c ClientController, err error) {
-
-	lock.RLock()
-	defer lock.RUnlock()
-	c, ok := apps[key]
-	if !ok {
-		err = errors.New("empty")
-	}
-
-	return
-
 }
