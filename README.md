@@ -20,11 +20,11 @@ func main() {
 
 	h := &Hello{}
 
-	app := gwspack.New("key", h, 10)
+	app := gwspack.New("key")
 	go app.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
-		ws, err := app.Register("Frank", w, r)
+		ws, err := app.Register("Frank", w, r,h,nil)
 		if err != nil {
 			fmt.Println(err)
 			return

@@ -7,8 +7,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync"
 	"testing"
 )
+
+var testlock *sync.RWMutex = new(sync.RWMutex)
 
 type testReceiver struct{ *testing.T }
 
@@ -40,6 +43,7 @@ func newWebScoetClient(a string) (wsConn *websocket.Conn) {
 	}
 	return wsConn
 }
+
 func TestRegister(t *testing.T) {
 	tag := [3]string{"a", "a", "b"}
 
@@ -47,8 +51,10 @@ func TestRegister(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		a := New("testKey", &testReceiver{t}, 5)
-		c, err := a.Register(tag[i], w, r, nil)
+		a := New("testKey")
+		testlock.RLock()
+		c, err := a.Register(tag[i], w, r, &testReceiver{}, nil)
+		testlock.RUnlock()
 		if err != nil {
 			t.Error(err)
 		}

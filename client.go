@@ -21,20 +21,22 @@ type ClientProxyer interface {
 	Listen()
 }
 type client struct {
-	id   string
-	ws   *websocket.Conn
-	app  *app
-	send chan []byte
-	data map[string]interface{}
+	id       string
+	ws       *websocket.Conn
+	app      *app
+	send     chan []byte
+	data     map[string]interface{}
+	receiver Receiver
 }
 
-func newClient(id string, ws *websocket.Conn, app *app, data map[string]interface{}) *client {
+func newClient(id string, ws *websocket.Conn, app *app, r Receiver, data map[string]interface{}) *client {
 	return &client{
-		id:   id,
-		ws:   ws,
-		send: make(chan []byte, 1024),
-		app:  app,
-		data: data,
+		id:       id,
+		ws:       ws,
+		send:     make(chan []byte, 1024),
+		app:      app,
+		data:     data,
+		receiver: r,
 	}
 }
 
@@ -56,8 +58,9 @@ func (c *client) readPump() {
 		if err != nil {
 			return
 		}
-
-		c.app.receive <- message{c.id, msg, c.data}
+		if c.app.receiver != nil {
+			c.receiver.Receive(c.id, c.app, msg, c.data)
+		}
 	}
 
 }

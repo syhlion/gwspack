@@ -10,12 +10,12 @@ var (
 	apps map[string]*app = make(map[string]*app)
 )
 
-func New(key string, r Receiver, clientSets int) (c ClientController) {
+func New(key string) (c ClientController) {
 
 	lock.Lock()
 	defer lock.Unlock()
 	if _, ok := apps[key]; !ok {
-		apps[key] = newApp(key, r, clientSets)
+		apps[key] = newApp(key)
 		go apps[key].Run()
 	}
 	return apps[key]
