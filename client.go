@@ -33,7 +33,7 @@ func newClient(id string, ws *websocket.Conn, app *app, r Receiver, data map[str
 	return &client{
 		id:       id,
 		ws:       ws,
-		send:     make(chan []byte, 1024),
+		send:     make(chan []byte, 4096),
 		app:      app,
 		data:     data,
 		receiver: r,
