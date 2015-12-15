@@ -1,12 +1,15 @@
 package gwspack
 
 import (
+	"regexp"
 	"sync"
 )
 
 type connpool struct {
-	lock *sync.RWMutex
-	pool map[string]map[*client]UserData
+	lock              *sync.RWMutex
+	pool              map[string]map[*client]UserData
+	registerHandler   func(id string, s Sender)
+	unregisterHandler func(id string, s Sender)
 }
 
 func (cp *connpool) Join(c *client) (err error) {
@@ -17,6 +20,9 @@ func (cp *connpool) Join(c *client) (err error) {
 		m := make(map[*client]UserData)
 		m[c] = c.data
 		cp.pool[c.id] = m
+		if cp.registerHandler != nil {
+			cp.registerHandler(c.id, cp)
+		}
 	} else {
 		v[c] = c.data
 	}
@@ -28,7 +34,14 @@ func (cp *connpool) Remove(c *client) (err error) {
 	defer cp.lock.Unlock()
 	if _, ok := cp.pool[c.id]; ok {
 		delete(cp.pool[c.id], c)
+		if cp.pool[c.id] == nil {
+			if cp.unregisterHandler != nil {
+				cp.unregisterHandler(c.id, cp)
+			}
+			delete(cp.pool, c.id)
+		}
 	}
+
 	return
 }
 func (cp *connpool) RemoveById(id string) (err error) {
@@ -36,6 +49,9 @@ func (cp *connpool) RemoveById(id string) (err error) {
 	defer cp.lock.Unlock()
 	if _, ok := cp.pool[id]; ok {
 		delete(cp.pool, id)
+		if cp.unregisterHandler != nil {
+			cp.unregisterHandler(id, cp)
+		}
 	}
 	return
 }
@@ -82,4 +98,19 @@ func (cp *connpool) SendAll(b []byte) {
 		}
 	}
 
+}
+
+func (cp *connpool) SendToByRegex(id string, regex string, b []byte) {
+
+	cp.lock.RLock()
+	defer cp.lock.RUnlock()
+	for k, clientMap := range cp.pool {
+		if vailed, err := regexp.Compile(regex); err == nil {
+			if vailed.MatchString(k) {
+				for client := range clientMap {
+					client.send <- b
+				}
+			}
+		}
+	}
 }

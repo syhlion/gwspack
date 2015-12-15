@@ -19,8 +19,9 @@ type ClientController interface {
 	Unregister(id string)
 	Count() int
 	CountById() int
-	SendTo(id string, b []byte)
-	SendAll(b []byte)
+	Sender
+	SetRegisterHandler(f func(id string, s Sender))
+	SetUnregisterHandler(f func(id string, s Sender))
 }
 
 type app struct {
@@ -32,6 +33,7 @@ type app struct {
 type Sender interface {
 	SendTo(id string, b []byte)
 	SendAll(b []byte)
+	SendToByRegex(id string, regex string, b []byte)
 }
 
 type Receiver interface {
@@ -41,8 +43,10 @@ type Receiver interface {
 func newApp(key string) (a *app) {
 
 	cp := &connpool{
-		lock: new(sync.RWMutex),
-		pool: make(map[string]map[*client]UserData),
+		lock:              new(sync.RWMutex),
+		pool:              make(map[string]map[*client]UserData),
+		registerHandler:   nil,
+		unregisterHandler: nil,
 	}
 	a = &app{
 		key:      key,
@@ -67,4 +71,13 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, recv R
 func (a *app) Unregister(id string) {
 	a.RemoveById(id)
 	return
+}
+
+func (a *app) SetRegisterHandler(f func(id string, s Sender)) {
+	a.registerHandler = f
+
+}
+func (a *app) SetUnregisterHandler(f func(id string, s Sender)) {
+	a.unregisterHandler = f
+
 }
