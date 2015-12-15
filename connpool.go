@@ -100,7 +100,7 @@ func (cp *connpool) SendAll(b []byte) {
 
 }
 
-func (cp *connpool) SendToByRegex(id string, regex string, b []byte) {
+func (cp *connpool) SendToByRegex(regex string, b []byte) {
 
 	cp.lock.RLock()
 	defer cp.lock.RUnlock()

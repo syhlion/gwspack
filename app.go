@@ -33,7 +33,7 @@ type app struct {
 type Sender interface {
 	SendTo(id string, b []byte)
 	SendAll(b []byte)
-	SendToByRegex(id string, regex string, b []byte)
+	SendToByRegex(regex string, b []byte)
 }
 
 type Receiver interface {
