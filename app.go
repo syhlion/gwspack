@@ -26,9 +26,7 @@ type ClientController interface {
 type app struct {
 	key string //app key
 	*connpool
-	receiver   Receiver
-	register   chan *client
-	unregister chan *client
+	receiver Receiver
 }
 
 type Sender interface {
@@ -47,10 +45,8 @@ func newApp(key string) (a *app) {
 		pool: make(map[string]map[*client]UserData),
 	}
 	a = &app{
-		key:        key,
-		connpool:   cp,
-		register:   make(chan *client),
-		unregister: make(chan *client),
+		key:      key,
+		connpool: cp,
 	}
 	return
 }
