@@ -48,7 +48,7 @@ func (c *client) write(msgType int, msg []byte) error {
 func (c *client) readPump() {
 	defer func() {
 		c.ws.Close()
-		c.app.unregister <- c
+		c.app.Remove(c)
 	}()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -66,7 +66,6 @@ func (c *client) readPump() {
 }
 
 func (c *client) Listen() {
-	c.app.register <- c
 	go c.writePump()
 	c.readPump()
 }
@@ -75,7 +74,7 @@ func (c *client) writePump() {
 	t := time.NewTicker(pingPeriod)
 	defer func() {
 		c.ws.Close()
-		c.app.unregister <- c
+		c.app.Remove(c)
 		t.Stop()
 	}()
 	for {

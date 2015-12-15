@@ -24,10 +24,9 @@ type ClientController interface {
 }
 
 type app struct {
-	key        string //app key
-	pool       *connpool
+	key string //app key
+	*connpool
 	receiver   Receiver
-	boradcast  chan []byte
 	register   chan *client
 	unregister chan *client
 }
@@ -49,8 +48,7 @@ func newApp(key string) (a *app) {
 	}
 	a = &app{
 		key:        key,
-		pool:       cp,
-		boradcast:  make(chan []byte),
+		connpool:   cp,
 		register:   make(chan *client),
 		unregister: make(chan *client),
 	}
@@ -63,77 +61,14 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, recv R
 
 		return
 	}
-	c = newClient(id, ws, a, recv, data)
+	client := newClient(id, ws, a, recv, data)
+	a.Join(client)
+	c = client
 	return
 
 }
 
 func (a *app) Unregister(id string) {
-	a.pool.removeById(id)
+	a.RemoveById(id)
 	return
-}
-
-func (a *app) SendTo(id string, b []byte) {
-	a.pool.sendTo(id, b)
-	return
-
-}
-
-func (a *app) Count() int {
-	return a.pool.count()
-}
-
-func (a *app) CountById() int {
-	return a.pool.countById()
-}
-
-func (a *app) SendAll(b []byte) {
-	a.boradcast <- b
-}
-
-func (a *app) List() {
-}
-
-func (a *app) Run() {
-	for {
-		select {
-		case c := <-a.register:
-			a.pool.join(c)
-		case client := <-a.unregister:
-			a.pool.remove(client)
-
-		case message := <-a.boradcast:
-			a.pool.sendAll(message)
-		}
-
-	}
-	defer func() {
-		close(a.boradcast)
-		close(a.register)
-		close(a.unregister)
-	}()
-}
-
-func IsExpand(clientCount int, clientSets int, processCount int) bool {
-	sets := clientCount / clientSets
-	residue := clientCount % clientSets
-	if processCount == 0 {
-		return true
-	}
-	if processCount <= sets && residue > (clientSets/2) {
-		return true
-	}
-	return false
-}
-func IsReduce(clientCount int, clientSets int, processCount int) bool {
-	sets := clientCount / clientSets
-	residue := clientCount % clientSets
-	if processCount <= 1 {
-		return false
-	}
-	if processCount >= sets && residue < (clientSets/2) {
-		return true
-	}
-	return false
-
 }

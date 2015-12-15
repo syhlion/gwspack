@@ -15,7 +15,6 @@ func Get(key string) (c ClientController) {
 	defer lock.Unlock()
 	if _, ok := apps[key]; !ok {
 		apps[key] = newApp(key)
-		go apps[key].Run()
 	}
 	return apps[key]
 }

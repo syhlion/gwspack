@@ -52,16 +52,18 @@ func TestRegister(t *testing.T) {
 
 		a := Get("testKey")
 		testlock.RLock()
-		c, err := a.Register(tag[i], w, r, &testReceiver{}, nil)
+		tt := tag[i]
 		testlock.RUnlock()
+		c, err := a.Register(tt, w, r, &testReceiver{}, nil)
 		if err != nil {
 			t.Error(err)
 		}
+		testlock.Lock()
 		i++
+		testlock.Unlock()
 		c.Listen()
 
 	}))
-	defer ts.Close()
 	ws := newWebScoetClient(ts.URL)
 	ws2 := newWebScoetClient(ts.URL)
 	ws3 := newWebScoetClient(ts.URL)
@@ -69,6 +71,7 @@ func TestRegister(t *testing.T) {
 		ws.Close()
 		ws2.Close()
 		ws3.Close()
+		ts.Close()
 	}()
 	ap := Get("testKey")
 	if ap.Count() != 3 {
@@ -80,6 +83,7 @@ func TestRegister(t *testing.T) {
 	return
 
 }
+
 func TestSendAll(t *testing.T) {
 
 	tag := [3]string{"a", "a", "b"}
@@ -90,12 +94,15 @@ func TestSendAll(t *testing.T) {
 
 		a := Get("testKey")
 		testlock.RLock()
-		c, err := a.Register(tag[i], w, r, &testReceiver{}, nil)
+		tt := tag[i]
 		testlock.RUnlock()
+		c, err := a.Register(tt, w, r, &testReceiver{}, nil)
 		if err != nil {
 			t.Error(err)
 		}
+		testlock.Lock()
 		i++
+		testlock.Unlock()
 		c.Listen()
 
 	}))

@@ -9,7 +9,7 @@ type connpool struct {
 	pool map[string]map[*client]UserData
 }
 
-func (cp *connpool) join(c *client) (err error) {
+func (cp *connpool) Join(c *client) (err error) {
 
 	cp.lock.Lock()
 	defer cp.lock.Unlock()
@@ -23,7 +23,7 @@ func (cp *connpool) join(c *client) (err error) {
 	return
 }
 
-func (cp *connpool) remove(c *client) (err error) {
+func (cp *connpool) Remove(c *client) (err error) {
 	cp.lock.Lock()
 	defer cp.lock.Unlock()
 	if _, ok := cp.pool[c.id]; ok {
@@ -31,7 +31,7 @@ func (cp *connpool) remove(c *client) (err error) {
 	}
 	return
 }
-func (cp *connpool) removeById(id string) (err error) {
+func (cp *connpool) RemoveById(id string) (err error) {
 	cp.lock.Lock()
 	defer cp.lock.Unlock()
 	if _, ok := cp.pool[id]; ok {
@@ -40,7 +40,7 @@ func (cp *connpool) removeById(id string) (err error) {
 	return
 }
 
-func (cp *connpool) countById() (i int) {
+func (cp *connpool) CountById() (i int) {
 
 	cp.lock.RLock()
 	defer cp.lock.RUnlock()
@@ -49,7 +49,7 @@ func (cp *connpool) countById() (i int) {
 
 }
 
-func (cp *connpool) count() (i int) {
+func (cp *connpool) Count() (i int) {
 	cp.lock.RLock()
 	defer cp.lock.RUnlock()
 
@@ -61,7 +61,7 @@ func (cp *connpool) count() (i int) {
 	return i
 }
 
-func (cp *connpool) sendTo(id string, b []byte) {
+func (cp *connpool) SendTo(id string, b []byte) {
 
 	cp.lock.RLock()
 	defer cp.lock.RUnlock()
@@ -72,8 +72,10 @@ func (cp *connpool) sendTo(id string, b []byte) {
 
 }
 
-func (cp *connpool) sendAll(b []byte) {
+func (cp *connpool) SendAll(b []byte) {
 
+	cp.lock.RLock()
+	defer cp.lock.RUnlock()
 	for _, clientMap := range cp.pool {
 		for client := range clientMap {
 			client.send <- b
