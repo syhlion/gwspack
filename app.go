@@ -20,8 +20,8 @@ type ClientController interface {
 	Count() int
 	CountById() int
 	Sender
-	SetRegisterHandler(f func(id string, s Sender))
-	SetUnregisterHandler(f func(id string, s Sender))
+	SetRegisterHandler(f func(id string, s Sender, data UserData))
+	SetUnregisterHandler(f func(id string, s Sender, data UserData))
 }
 
 type app struct {
@@ -33,7 +33,7 @@ type app struct {
 type Sender interface {
 	SendTo(id string, b []byte)
 	SendAll(b []byte)
-	SendToByRegex(regex string, b []byte)
+	SendByRegex(regex string, b []byte)
 }
 
 type Receiver interface {
@@ -73,11 +73,11 @@ func (a *app) Unregister(id string) {
 	return
 }
 
-func (a *app) SetRegisterHandler(f func(id string, s Sender)) {
+func (a *app) SetRegisterHandler(f func(id string, s Sender, data UserData)) {
 	a.registerHandler = f
 
 }
-func (a *app) SetUnregisterHandler(f func(id string, s Sender)) {
+func (a *app) SetUnregisterHandler(f func(id string, s Sender, data UserData)) {
 	a.unregisterHandler = f
 
 }

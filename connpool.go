@@ -8,8 +8,8 @@ import (
 type connpool struct {
 	lock              *sync.RWMutex
 	pool              map[string]map[*client]UserData
-	registerHandler   func(id string, s Sender)
-	unregisterHandler func(id string, s Sender)
+	registerHandler   func(id string, s Sender, data UserData)
+	unregisterHandler func(id string, s Sender, data UserData)
 }
 
 func (cp *connpool) Join(c *client) (err error) {
@@ -21,7 +21,7 @@ func (cp *connpool) Join(c *client) (err error) {
 		m[c] = c.data
 		cp.pool[c.id] = m
 		if cp.registerHandler != nil {
-			cp.registerHandler(c.id, cp)
+			cp.registerHandler(c.id, cp, c.data)
 		}
 	} else {
 		v[c] = c.data
@@ -36,7 +36,7 @@ func (cp *connpool) Remove(c *client) (err error) {
 		delete(cp.pool[c.id], c)
 		if cp.pool[c.id] == nil {
 			if cp.unregisterHandler != nil {
-				cp.unregisterHandler(c.id, cp)
+				cp.unregisterHandler(c.id, cp, c.data)
 			}
 			delete(cp.pool, c.id)
 		}
@@ -47,11 +47,16 @@ func (cp *connpool) Remove(c *client) (err error) {
 func (cp *connpool) RemoveById(id string) (err error) {
 	cp.lock.Lock()
 	defer cp.lock.Unlock()
-	if _, ok := cp.pool[id]; ok {
-		delete(cp.pool, id)
-		if cp.unregisterHandler != nil {
-			cp.unregisterHandler(id, cp)
+	var data UserData
+	if m, ok := cp.pool[id]; ok {
+		for _, v := range m {
+			data = v
+			break
 		}
+		if cp.unregisterHandler != nil {
+			cp.unregisterHandler(id, cp, data)
+		}
+		delete(cp.pool, id)
 	}
 	return
 }
@@ -100,7 +105,7 @@ func (cp *connpool) SendAll(b []byte) {
 
 }
 
-func (cp *connpool) SendToByRegex(regex string, b []byte) {
+func (cp *connpool) SendByRegex(regex string, b []byte) {
 
 	cp.lock.RLock()
 	defer cp.lock.RUnlock()
