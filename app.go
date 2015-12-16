@@ -15,19 +15,16 @@ var Upgrader = websocket.Upgrader{
 }
 
 type ClientController interface {
-	Register(id string, w http.ResponseWriter, r *http.Request, recv Receiver, data UserData) (c ClientProxyer, err error)
+	Register(id string, w http.ResponseWriter, r *http.Request, recv ClientHandler, data UserData) (c ClientProxyer, err error)
 	Unregister(id string)
 	Count() int
 	CountById() int
 	Sender
-	SetRegisterHandler(f func(id string, s Sender, data UserData))
-	SetUnregisterHandler(f func(id string, s Sender, data UserData))
 }
 
 type app struct {
 	key string //app key
 	*connpool
-	receiver Receiver
 }
 
 type Sender interface {
@@ -36,17 +33,15 @@ type Sender interface {
 	SendByRegex(regex string, b []byte)
 }
 
-type Receiver interface {
+type ClientHandler interface {
 	Receive(id string, s Sender, b []byte, data UserData)
 }
 
 func newApp(key string) (a *app) {
 
 	cp := &connpool{
-		lock:              new(sync.RWMutex),
-		pool:              make(map[string]map[*client]UserData),
-		registerHandler:   nil,
-		unregisterHandler: nil,
+		lock: new(sync.RWMutex),
+		pool: make(map[string]map[*client]UserData),
 	}
 	a = &app{
 		key:      key,
@@ -55,13 +50,13 @@ func newApp(key string) (a *app) {
 	return
 }
 
-func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, recv Receiver, data UserData) (c ClientProxyer, err error) {
+func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, h ClientHandler, data UserData) (c ClientProxyer, err error) {
 	ws, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 
 		return
 	}
-	client := newClient(id, ws, a, recv, data)
+	client := newClient(id, ws, a, h, data)
 	a.Join(client)
 	c = client
 	return
@@ -71,13 +66,4 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, recv R
 func (a *app) Unregister(id string) {
 	a.RemoveById(id)
 	return
-}
-
-func (a *app) SetRegisterHandler(f func(id string, s Sender, data UserData)) {
-	a.registerHandler = f
-
-}
-func (a *app) SetUnregisterHandler(f func(id string, s Sender, data UserData)) {
-	a.unregisterHandler = f
-
 }

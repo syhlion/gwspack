@@ -6,10 +6,8 @@ import (
 )
 
 type connpool struct {
-	lock              *sync.RWMutex
-	pool              map[string]map[*client]UserData
-	registerHandler   func(id string, s Sender, data UserData)
-	unregisterHandler func(id string, s Sender, data UserData)
+	lock *sync.RWMutex
+	pool map[string]map[*client]UserData
 }
 
 func (cp *connpool) Join(c *client) (err error) {
@@ -20,9 +18,6 @@ func (cp *connpool) Join(c *client) (err error) {
 		m := make(map[*client]UserData)
 		m[c] = c.data
 		cp.pool[c.id] = m
-		if cp.registerHandler != nil {
-			cp.registerHandler(c.id, cp, c.data)
-		}
 	} else {
 		v[c] = c.data
 	}
@@ -35,27 +30,15 @@ func (cp *connpool) Remove(c *client) (err error) {
 	if _, ok := cp.pool[c.id]; ok {
 		delete(cp.pool[c.id], c)
 		if cp.pool[c.id] == nil {
-			if cp.unregisterHandler != nil {
-				cp.unregisterHandler(c.id, cp, c.data)
-			}
 			delete(cp.pool, c.id)
 		}
 	}
-
 	return
 }
 func (cp *connpool) RemoveById(id string) (err error) {
 	cp.lock.Lock()
 	defer cp.lock.Unlock()
-	var data UserData
-	if m, ok := cp.pool[id]; ok {
-		for _, v := range m {
-			data = v
-			break
-		}
-		if cp.unregisterHandler != nil {
-			cp.unregisterHandler(id, cp, data)
-		}
+	if _, ok := cp.pool[id]; ok {
 		delete(cp.pool, id)
 	}
 	return

@@ -15,8 +15,30 @@ var testlock *sync.RWMutex = new(sync.RWMutex)
 
 type testReceiver struct{ *testing.T }
 
-func (t testReceiver) Receive(tag string, s Sender, b []byte, data UserData) {
+func (t *testReceiver) Receive(tag string, s Sender, b []byte, data UserData) {
 	s.SendAll(b)
+
+}
+func (t *testReceiver) AfterRegister(tag string, s Sender, data UserData) {
+	return
+
+}
+func (t *testReceiver) AfterUnregister(tag string, s Sender, data UserData) {
+	return
+
+}
+
+type testAfterRegister struct{ *testing.T }
+
+func (t *testAfterRegister) Receive(tag string, s Sender, b []byte, data UserData) {
+	s.SendAll(b)
+
+}
+func (t *testAfterRegister) AfterRegister(tag string, s Sender, data UserData) {
+	s.SendAll([]byte("HIHI"))
+
+}
+func (t *testAfterRegister) AfterUnregister(tag string, s Sender, data UserData) {
 
 }
 
@@ -54,7 +76,7 @@ func TestRegister(t *testing.T) {
 		testlock.RLock()
 		tt := tag[i]
 		testlock.RUnlock()
-		c, err := a.Register(tt, w, r, &testReceiver{}, nil)
+		c, err := a.Register(tt, w, r, &testReceiver{t}, nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -62,6 +84,7 @@ func TestRegister(t *testing.T) {
 		i++
 		testlock.Unlock()
 		c.Listen()
+		return
 
 	}))
 	ws := newWebScoetClient(ts.URL)
@@ -83,7 +106,6 @@ func TestRegister(t *testing.T) {
 	return
 
 }
-
 func TestSendAll(t *testing.T) {
 
 	tag := [3]string{"a", "a", "b"}
