@@ -13,9 +13,8 @@ const (
 )
 
 type message struct {
-	clientId string
-	content  []byte
-	data     map[string]interface{}
+	to      string
+	content []byte
 }
 type ClientProxyer interface {
 	Listen()
@@ -48,7 +47,7 @@ func (c *client) write(msgType int, msg []byte) error {
 func (c *client) readPump() {
 	defer func() {
 		c.ws.Close()
-		c.app.Remove(c)
+		c.app.disconnect <- c
 	}()
 	c.ws.SetReadLimit(maxMessageSize)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
@@ -74,7 +73,7 @@ func (c *client) writePump() {
 	t := time.NewTicker(pingPeriod)
 	defer func() {
 		c.ws.Close()
-		c.app.Remove(c)
+		c.app.disconnect <- c
 		t.Stop()
 	}()
 	for {
