@@ -88,6 +88,21 @@ func (cp *connpool) SendAll(b []byte) {
 
 }
 
+func (cp *connpool) List() (list map[string]UserData) {
+	list = make(map[string]UserData)
+
+	cp.lock.RLock()
+	defer cp.lock.RUnlock()
+	for k, v := range cp.pool {
+		for c := range v {
+			list[k] = c.data
+			break
+		}
+	}
+	return
+
+}
+
 func (cp *connpool) SendByRegex(regex string, b []byte) {
 
 	cp.lock.RLock()

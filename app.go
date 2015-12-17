@@ -31,6 +31,7 @@ type Sender interface {
 	SendTo(id string, b []byte)
 	SendAll(b []byte)
 	SendByRegex(regex string, b []byte)
+	List() map[string]UserData
 }
 
 type ClientHandler interface {
