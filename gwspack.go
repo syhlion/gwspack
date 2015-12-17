@@ -23,6 +23,7 @@ func Info() (info map[string]int) {
 	lock.RLock()
 	defer lock.RUnlock()
 
+	info = make(map[string]int)
 	for k, v := range apps {
 		info[k] = v.Count()
 	}

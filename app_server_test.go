@@ -103,6 +103,10 @@ func TestRegister(t *testing.T) {
 	if ap.CountById() != 2 {
 		t.Error("count by tag error", ap.Count())
 	}
+	ma := Info()
+	if v, ok := ma["testKey"]; !ok && v != ap.Count() {
+		t.Error("Info error", ma)
+	}
 	return
 
 }
