@@ -18,3 +18,14 @@ func Get(key string) (c ClientController) {
 	}
 	return apps[key]
 }
+
+func Info() (info map[string]int) {
+	lock.RLock()
+	defer lock.RUnlock()
+
+	for k, v := range apps {
+		info[k] = v.Count()
+	}
+	return info
+
+}
