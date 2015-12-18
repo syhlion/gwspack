@@ -2,6 +2,7 @@ package gwspack
 
 import (
 	"github.com/gorilla/websocket"
+	"regexp"
 	"time"
 )
 
@@ -14,6 +15,7 @@ const (
 
 type message struct {
 	to      string
+	regex   *regexp.Regexp
 	content []byte
 }
 type ClientProxyer interface {

@@ -29,7 +29,7 @@ func (cp *connpool) remove(c *client) (err error) {
 	defer cp.lock.Unlock()
 	if _, ok := cp.pool[c.id]; ok {
 		delete(cp.pool[c.id], c)
-		if cp.pool[c.id] == nil {
+		if len(cp.pool[c.id]) == 0 {
 			delete(cp.pool, c.id)
 		}
 	}
@@ -103,16 +103,14 @@ func (cp *connpool) List() (list map[string]UserData) {
 
 }
 
-func (cp *connpool) SendByRegex(regex string, b []byte) {
+func (cp *connpool) sendByRegex(vailed *regexp.Regexp, b []byte) {
 
 	cp.lock.RLock()
 	defer cp.lock.RUnlock()
 	for k, clientMap := range cp.pool {
-		if vailed, err := regexp.Compile(regex); err == nil {
-			if vailed.MatchString(k) {
-				for client := range clientMap {
-					client.send <- b
-				}
+		if vailed.MatchString(k) {
+			for client := range clientMap {
+				client.send <- b
 			}
 		}
 	}

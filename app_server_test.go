@@ -110,8 +110,6 @@ func TestRegister(t *testing.T) {
 	return
 
 }
-
-/*
 func TestSendAll(t *testing.T) {
 
 	tag := [3]string{"a", "a", "b"}
@@ -179,4 +177,4 @@ func TestSendAll(t *testing.T) {
 		t.Error(wsint, ws2int, ws3int)
 	}
 	return
-}*/
+}

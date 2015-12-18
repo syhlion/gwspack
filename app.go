@@ -3,6 +3,7 @@ package gwspack
 import (
 	"github.com/gorilla/websocket"
 	"net/http"
+	"regexp"
 	"sync"
 )
 
@@ -34,7 +35,7 @@ type app struct {
 type Sender interface {
 	SendTo(id string, b []byte)
 	SendAll(b []byte)
-	SendByRegex(regex string, b []byte)
+	SendByRegex(regex string, b []byte) (err error)
 	List() map[string]UserData
 }
 
@@ -51,10 +52,10 @@ func newApp(key string) (a *app) {
 	a = &app{
 		key:        key,
 		connpool:   cp,
-		send:       make(chan message, 1000),
-		connect:    make(chan *client, 1000),
-		unregister: make(chan string, 1000),
-		disconnect: make(chan *client, 1000),
+		send:       make(chan message, 6000),
+		connect:    make(chan *client, 6000),
+		unregister: make(chan string, 6000),
+		disconnect: make(chan *client, 6000),
 	}
 	return
 }
@@ -67,19 +68,30 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, h Clie
 	}
 	client := newClient(id, ws, a, h, data)
 	a.connect <- client
-	println("test")
 	c = client
 	return
 
 }
 
+func (a *app) SendByRegex(regex string, b []byte) (err error) {
+	if vailed, err := regexp.Compile(regex); err != nil {
+		return err
+	} else {
+		m := message{"", vailed, b}
+		a.send <- m
+	}
+
+	return
+
+}
+
 func (a *app) SendTo(id string, b []byte) {
-	m := message{id, b}
+	m := message{id, nil, b}
 	a.send <- m
 }
 
 func (a *app) SendAll(b []byte) {
-	m := message{"", b}
+	m := message{"", nil, b}
 	a.send <- m
 }
 
@@ -94,8 +106,10 @@ func (a *app) run() {
 		case c := <-a.connect:
 			a.join(c)
 		case m := <-a.send:
-			if m.to == "" {
+			if m.to == "" && m.regex == nil {
 				a.sendAll(m.content)
+			} else if m.regex != nil {
+				a.sendByRegex(m.regex, m.content)
 			} else {
 				a.sendTo(m.to, m.content)
 			}
