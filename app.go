@@ -25,6 +25,10 @@ type ClientController interface {
 type app struct {
 	key string //app key
 	*connpool
+	send       chan message
+	connect    chan *client
+	unregister chan string
+	disconnect chan *client
 }
 
 type Sender interface {
@@ -45,8 +49,12 @@ func newApp(key string) (a *app) {
 		pool: make(map[string]map[*client]UserData),
 	}
 	a = &app{
-		key:      key,
-		connpool: cp,
+		key:        key,
+		connpool:   cp,
+		send:       make(chan message, 1000),
+		connect:    make(chan *client, 1000),
+		unregister: make(chan string, 1000),
+		disconnect: make(chan *client, 1000),
 	}
 	return
 }
@@ -58,13 +66,44 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, h Clie
 		return
 	}
 	client := newClient(id, ws, a, h, data)
-	a.Join(client)
+	a.connect <- client
+	println("test")
 	c = client
 	return
 
 }
 
+func (a *app) SendTo(id string, b []byte) {
+	m := message{id, b}
+	a.send <- m
+}
+
+func (a *app) SendAll(b []byte) {
+	m := message{"", b}
+	a.send <- m
+}
+
 func (a *app) Unregister(id string) {
-	a.RemoveById(id)
+	a.unregister <- id
 	return
+}
+
+func (a *app) run() {
+	for {
+		select {
+		case c := <-a.connect:
+			a.join(c)
+		case m := <-a.send:
+			if m.to == "" {
+				a.sendAll(m.content)
+			} else {
+				a.sendTo(m.to, m.content)
+			}
+		case c := <-a.disconnect:
+			a.remove(c)
+		case id := <-a.unregister:
+			a.removeById(id)
+		}
+	}
+
 }
