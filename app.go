@@ -52,10 +52,10 @@ func newApp(key string) (a *app) {
 	a = &app{
 		key:        key,
 		connpool:   cp,
-		send:       make(chan message, 6000),
-		connect:    make(chan *client, 6000),
-		unregister: make(chan string, 6000),
-		disconnect: make(chan *client, 6000),
+		send:       make(chan message),
+		connect:    make(chan *client),
+		unregister: make(chan string),
+		disconnect: make(chan *client),
 	}
 	return
 }

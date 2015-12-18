@@ -12,8 +12,6 @@ type connpool struct {
 
 func (cp *connpool) join(c *client) (err error) {
 
-	cp.lock.Lock()
-	defer cp.lock.Unlock()
 	if v, ok := cp.pool[c.id]; !ok {
 		m := make(map[*client]UserData)
 		m[c] = c.data
@@ -25,8 +23,6 @@ func (cp *connpool) join(c *client) (err error) {
 }
 
 func (cp *connpool) remove(c *client) (err error) {
-	cp.lock.Lock()
-	defer cp.lock.Unlock()
 	if _, ok := cp.pool[c.id]; ok {
 		delete(cp.pool[c.id], c)
 		if len(cp.pool[c.id]) == 0 {
@@ -36,8 +32,6 @@ func (cp *connpool) remove(c *client) (err error) {
 	return
 }
 func (cp *connpool) removeById(id string) (err error) {
-	cp.lock.Lock()
-	defer cp.lock.Unlock()
 	if _, ok := cp.pool[id]; ok {
 		delete(cp.pool, id)
 	}
@@ -45,17 +39,12 @@ func (cp *connpool) removeById(id string) (err error) {
 }
 
 func (cp *connpool) CountById() (i int) {
-
-	cp.lock.RLock()
-	defer cp.lock.RUnlock()
 	i = len(cp.pool)
 	return
 
 }
 
 func (cp *connpool) Count() (i int) {
-	cp.lock.RLock()
-	defer cp.lock.RUnlock()
 
 	for k, _ := range cp.pool {
 		for _, _ = range cp.pool[k] {
@@ -66,11 +55,13 @@ func (cp *connpool) Count() (i int) {
 }
 
 func (cp *connpool) sendTo(id string, b []byte) {
-
-	cp.lock.RLock()
-	defer cp.lock.RUnlock()
 	for c := range cp.pool[id] {
-		c.send <- b
+		select {
+		case c.send <- b:
+		default:
+			close(c.send)
+			delete(cp.pool[id], c)
+		}
 	}
 	return
 
@@ -78,11 +69,14 @@ func (cp *connpool) sendTo(id string, b []byte) {
 
 func (cp *connpool) sendAll(b []byte) {
 
-	cp.lock.RLock()
-	defer cp.lock.RUnlock()
 	for _, clientMap := range cp.pool {
-		for client := range clientMap {
-			client.send <- b
+		for c := range clientMap {
+			select {
+			case c.send <- b:
+			default:
+				close(c.send)
+				delete(clientMap, c)
+			}
 		}
 	}
 
@@ -91,8 +85,6 @@ func (cp *connpool) sendAll(b []byte) {
 func (cp *connpool) List() (list map[string]UserData) {
 	list = make(map[string]UserData)
 
-	cp.lock.RLock()
-	defer cp.lock.RUnlock()
 	for k, v := range cp.pool {
 		for c := range v {
 			list[k] = c.data
@@ -105,8 +97,6 @@ func (cp *connpool) List() (list map[string]UserData) {
 
 func (cp *connpool) sendByRegex(vailed *regexp.Regexp, b []byte) {
 
-	cp.lock.RLock()
-	defer cp.lock.RUnlock()
 	for k, clientMap := range cp.pool {
 		if vailed.MatchString(k) {
 			for client := range clientMap {
