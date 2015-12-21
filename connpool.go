@@ -23,9 +23,12 @@ func (cp *connpool) join(c *client) (err error) {
 }
 
 func (cp *connpool) remove(c *client) (err error) {
-	if _, ok := cp.pool[c.id]; ok {
-		delete(cp.pool[c.id], c)
-		if len(cp.pool[c.id]) == 0 {
+	if cc, ok := cp.pool[c.id]; ok {
+		if _, ok = cc[c]; ok {
+			delete(cc, c)
+			close(c.send)
+		}
+		if len(cc) == 0 {
 			delete(cp.pool, c.id)
 		}
 	}
@@ -33,6 +36,10 @@ func (cp *connpool) remove(c *client) (err error) {
 }
 func (cp *connpool) removeById(id string) (err error) {
 	if _, ok := cp.pool[id]; ok {
+		for c, _ := range cp.pool[id] {
+			delete(cp.pool[id], c)
+			close(c.send)
+		}
 		delete(cp.pool, id)
 	}
 	return
