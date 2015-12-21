@@ -100,6 +100,13 @@ func (a *app) Unregister(id string) {
 	return
 }
 
+func (a *app) Count() int {
+	return a.count()
+}
+func (a *app) CountById() int {
+	return a.countById()
+}
+
 func (a *app) run() {
 	for {
 		select {
