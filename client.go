@@ -60,7 +60,7 @@ func (c *client) readPump() {
 			return
 		}
 		if c.handler != nil {
-			c.handler.Receive(c.id, c.app, msg, c.data)
+			c.handler.Receive(c.app, msg)
 		}
 	}
 

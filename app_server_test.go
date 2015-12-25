@@ -15,30 +15,18 @@ var testlock *sync.RWMutex = new(sync.RWMutex)
 
 type testReceiver struct{ *testing.T }
 
-func (t *testReceiver) Receive(tag string, s Sender, b []byte, data UserData) {
+func (t *testReceiver) Receive(s Sender, b []byte) {
 	s.SendAll(b)
 
 }
-func (t *testReceiver) AfterRegister(tag string, s Sender, data UserData) {
-	return
-
-}
-func (t *testReceiver) AfterUnregister(tag string, s Sender, data UserData) {
-	return
-
+func (t *testReceiver) GetUserData() UserData {
+	return nil
 }
 
 type testAfterRegister struct{ *testing.T }
 
-func (t *testAfterRegister) Receive(tag string, s Sender, b []byte, data UserData) {
+func (t *testAfterRegister) Receive(s Sender, b []byte) {
 	s.SendAll(b)
-
-}
-func (t *testAfterRegister) AfterRegister(tag string, s Sender, data UserData) {
-	s.SendAll([]byte("HIHI"))
-
-}
-func (t *testAfterRegister) AfterUnregister(tag string, s Sender, data UserData) {
 
 }
 
@@ -66,17 +54,16 @@ func newWebScoetClient(a string) (wsConn *websocket.Conn) {
 }
 
 func TestRegister(t *testing.T) {
-	tag := [3]string{"a", "a", "b"}
+	tag := [5]string{"a", "a", "b"}
 
 	i := 0
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		a := Get("testKey")
 		testlock.RLock()
 		tt := tag[i]
 		testlock.RUnlock()
-		c, err := a.Register(tt, w, r, &testReceiver{t}, nil)
+		c, err := a.Register(tt, w, r, &testReceiver{t})
 		if err != nil {
 			t.Error(err)
 		}
@@ -97,12 +84,6 @@ func TestRegister(t *testing.T) {
 		ts.Close()
 	}()
 	ap := Get("testKey")
-	if ap.Count() != 3 {
-		t.Error("count error", ap.Count())
-	}
-	if ap.CountById() != 2 {
-		t.Error("count by tag error", ap.Count())
-	}
 	ma := Info()
 	if v, ok := ma["testKey"]; !ok && v != ap.Count() {
 		t.Error("Info error", ma)
@@ -122,7 +103,7 @@ func TestSendAll(t *testing.T) {
 		testlock.RLock()
 		tt := tag[i]
 		testlock.RUnlock()
-		c, err := a.Register(tt, w, r, &testReceiver{}, nil)
+		c, err := a.Register(tt, w, r, &testReceiver{})
 		if err != nil {
 			t.Error(err)
 		}

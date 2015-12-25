@@ -16,7 +16,7 @@ var Upgrader = websocket.Upgrader{
 }
 
 type ClientController interface {
-	Register(id string, w http.ResponseWriter, r *http.Request, recv ClientHandler, data UserData) (c ClientProxyer, err error)
+	Register(id string, w http.ResponseWriter, r *http.Request, h ClientHandler) (c ClientProxyer, err error)
 	Unregister(id string)
 	Count() int
 	CountById() int
@@ -40,7 +40,8 @@ type Sender interface {
 }
 
 type ClientHandler interface {
-	Receive(id string, s Sender, b []byte, data UserData)
+	Receive(s Sender, b []byte)
+	GetUserData() UserData
 }
 
 func newApp(key string) (a *app) {
@@ -60,13 +61,13 @@ func newApp(key string) (a *app) {
 	return
 }
 
-func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, h ClientHandler, data UserData) (c ClientProxyer, err error) {
+func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, h ClientHandler) (c ClientProxyer, err error) {
 	ws, err := Upgrader.Upgrade(w, r, nil)
 	if err != nil {
 
 		return
 	}
-	client := newClient(id, ws, a, h, data)
+	client := newClient(id, ws, a, h, h.GetUserData())
 	a.connect <- client
 	c = client
 	return
@@ -102,6 +103,7 @@ func (a *app) Unregister(id string) {
 
 func (a *app) Count() int {
 	return a.count()
+
 }
 func (a *app) CountById() int {
 	return a.countById()
