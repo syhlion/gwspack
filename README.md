@@ -16,6 +16,9 @@ func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte, data gwspack.Use
 	log.Println(tag)
 	s.SendAll(b)
 }
+func (h *Hello) GetUserData() UserData{
+    return nil
+}
 func main() {
 
 	h := &Hello{}
@@ -24,7 +27,7 @@ func main() {
 	go app.Run()
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
 
-		ws, err := app.Register("Frank", w, r,h,nil)
+		ws, err := app.Register("Frank", w, r,h)
 		if err != nil {
 			fmt.Println(err)
 			return
