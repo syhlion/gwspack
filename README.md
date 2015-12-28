@@ -12,8 +12,7 @@ Base on gorilla/websocket
 ``` go
 type Hello struct{}
 
-func (h *Hello) Receive(tag string, s gwspack.Sender, b []byte, data gwspack.UserData) {
-	log.Println(tag)
+func (h *Hello) Receive(s gwspack.Sender, b []byte) {
 	s.SendAll(b)
 }
 func (h *Hello) GetUserData() UserData{
