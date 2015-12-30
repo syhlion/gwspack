@@ -30,13 +30,18 @@ type client struct {
 	handler ClientHandler
 }
 
-func newClient(id string, ws *websocket.Conn, app *app, h ClientHandler, data map[string]interface{}) *client {
+func newClient(id string, ws *websocket.Conn, app *app, h ClientHandler) *client {
+	var userData UserData
+	if h != nil {
+		userData = h.GetUserData()
+
+	}
 	return &client{
 		id:      id,
 		ws:      ws,
 		send:    make(chan []byte, 4096),
 		app:     app,
-		data:    data,
+		data:    userData,
 		handler: h,
 	}
 }

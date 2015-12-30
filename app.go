@@ -1,10 +1,11 @@
 package gwspack
 
 import (
-	"github.com/gorilla/websocket"
 	"net/http"
 	"regexp"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type UserData map[string]interface{}
@@ -67,7 +68,7 @@ func (a *app) Register(id string, w http.ResponseWriter, r *http.Request, h Clie
 
 		return
 	}
-	client := newClient(id, ws, a, h, h.GetUserData())
+	client := newClient(id, ws, a, h)
 	a.connect <- client
 	c = client
 	return

@@ -2,13 +2,14 @@ package gwspack
 
 import (
 	"fmt"
-	"github.com/gorilla/websocket"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"sync"
 	"testing"
+
+	"github.com/gorilla/websocket"
 )
 
 var testlock *sync.RWMutex = new(sync.RWMutex)
@@ -30,27 +31,27 @@ func (t *testAfterRegister) Receive(s Sender, b []byte) {
 
 }
 
-func newWebScoetClient(a string) (wsConn *websocket.Conn) {
+func newWebScoetClient(a string) (wsConn *websocket.Conn, err error) {
 	u, err := url.Parse(a)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	wsHeaders := http.Header{
-		"Origin":                   {"http://local"},
-		"Sec-WebSocket-Extensions": {"permessage-deflate; client_max_window_bits, x-webkit-deflate-frame"},
+		"Origin": {a},
 	}
 	rawConn, err := net.Dial("tcp", u.Host)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	wsConn, _, err = websocket.NewClient(rawConn, u, wsHeaders, 1024, 1024)
+	wsConn, _, err = websocket.NewClient(rawConn, u, wsHeaders, 4096, 4096)
 	if err != nil {
+		fmt.Println(u.Host)
 		fmt.Println(err)
 		return
 	}
-	return wsConn
+	return
 }
 
 func TestRegister(t *testing.T) {
@@ -58,7 +59,6 @@ func TestRegister(t *testing.T) {
 
 	i := 0
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		a := Get("testKey")
 		testlock.RLock()
 		tt := tag[i]
@@ -66,6 +66,7 @@ func TestRegister(t *testing.T) {
 		c, err := a.Register(tt, w, r, &testReceiver{t})
 		if err != nil {
 			t.Error(err)
+			return
 		}
 		testlock.Lock()
 		i++
@@ -74,14 +75,18 @@ func TestRegister(t *testing.T) {
 		return
 
 	}))
-	ws := newWebScoetClient(ts.URL)
-	ws2 := newWebScoetClient(ts.URL)
-	ws3 := newWebScoetClient(ts.URL)
+	defer ts.Close()
+	ws, err := newWebScoetClient(ts.URL)
+	ws2, err := newWebScoetClient(ts.URL)
+	ws3, err := newWebScoetClient(ts.URL)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	defer func() {
 		ws.Close()
 		ws2.Close()
 		ws3.Close()
-		ts.Close()
 	}()
 	ap := Get("testKey")
 	ma := Info()
@@ -114,9 +119,13 @@ func TestSendAll(t *testing.T) {
 
 	}))
 	defer ts.Close()
-	ws := newWebScoetClient(ts.URL)
-	ws2 := newWebScoetClient(ts.URL)
-	ws3 := newWebScoetClient(ts.URL)
+	ws, err := newWebScoetClient(ts.URL)
+	ws2, err := newWebScoetClient(ts.URL)
+	ws3, err := newWebScoetClient(ts.URL)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	defer func() {
 		ws.Close()
 		ws2.Close()
@@ -147,7 +156,7 @@ func TestSendAll(t *testing.T) {
 		}
 		defer close(ws3chan)
 	}()
-	err := ws.WriteMessage(websocket.TextMessage, []byte("aaa"))
+	err = ws.WriteMessage(websocket.TextMessage, []byte("aaa"))
 	if err != nil {
 		t.Error(err)
 	}
