@@ -1,4 +1,5 @@
 # Gusher WebScoket Pack
+[![Build Status](https://travis-ci.org/syhlion/gwspack.svg?branch=master)](https://travis-ci.org/syhlion/gwspack)
 
 Base on gorilla/websocket
 
