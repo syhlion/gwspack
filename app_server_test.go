@@ -76,9 +76,12 @@ func TestRegister(t *testing.T) {
 
 	}))
 	defer ts.Close()
-	ws, err := newWebScoetClient(ts.URL)
-	ws2, err := newWebScoetClient(ts.URL)
-	ws3, err := newWebScoetClient(ts.URL)
+
+	u, err := url.Parse(ts.URL)
+	url := "ws://" + u.Host
+	ws, err := newWebScoetClient(url)
+	ws2, err := newWebScoetClient(url)
+	ws3, err := newWebScoetClient(url)
 	if err != nil {
 		t.Error(err)
 		return
@@ -119,9 +122,11 @@ func TestSendAll(t *testing.T) {
 
 	}))
 	defer ts.Close()
-	ws, err := newWebScoetClient(ts.URL)
-	ws2, err := newWebScoetClient(ts.URL)
-	ws3, err := newWebScoetClient(ts.URL)
+	u, err := url.Parse(ts.URL)
+	url := "ws://" + u.Host
+	ws, err := newWebScoetClient(url)
+	ws2, err := newWebScoetClient(url)
+	ws3, err := newWebScoetClient(url)
 	if err != nil {
 		t.Error(err)
 		return
