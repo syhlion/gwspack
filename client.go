@@ -1,9 +1,10 @@
 package gwspack
 
 import (
-	"github.com/gorilla/websocket"
 	"regexp"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -19,6 +20,7 @@ type message struct {
 	content []byte
 }
 type ClientProxyer interface {
+	Send(b []byte)
 	Listen()
 }
 type client struct {
@@ -44,6 +46,11 @@ func newClient(id string, ws *websocket.Conn, app *app, h ClientHandler) *client
 		data:    userData,
 		handler: h,
 	}
+}
+
+func (c *client) Send(b []byte) {
+	c.send <- b
+	return
 }
 
 func (c *client) write(msgType int, msg []byte) error {
