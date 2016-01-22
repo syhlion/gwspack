@@ -56,7 +56,6 @@ func (cp *connpool) removeById(id string) {
 			close(c.send)
 		}
 		delete(cp.pool, id)
-		cp.lock.Unlock()
 	}
 	cp.lock.Unlock()
 
