@@ -9,6 +9,7 @@ var (
 	apps map[string]*app = make(map[string]*app)
 )
 
+// always return instance
 func Get(key string) (c ClientController) {
 
 	lock.Lock()
@@ -18,6 +19,18 @@ func Get(key string) (c ClientController) {
 		go apps[key].run()
 	}
 	return apps[key]
+}
+
+// if exists or return nil
+func Find(key string) ClientController {
+	lock.Lock()
+	defer lock.Unlock()
+
+	if c, ok := apps[key]; ok {
+		return c
+	}
+
+	return nil
 }
 
 func Info() (info map[string]int) {
@@ -30,4 +43,13 @@ func Info() (info map[string]int) {
 	}
 	return info
 
+}
+
+func ClientList(key string) map[string]UserData {
+
+	if c := Find(key); c != nil {
+		return c.List()
+	}
+
+	return nil
 }
